@@ -63,7 +63,7 @@ void RefreshRequiredEnts()
 					AcceptEntityInput(i, "Open");
 					AcceptEntityInput(i, "Kill");
 				}
-			} else if (StrEqual(classname, "trigger_capture_area")) { // Make it impossible to capture points
+			} else if (!IsDeathmatchDisabled() && StrEqual(classname, "trigger_capture_area")) { // If deathmatch map config enabled, Make it impossible to capture points
 				SetVariantString("2 0");
 				AcceptEntityInput(i, "SetTeamCanCap");
 				SetVariantString("3 0");
@@ -75,23 +75,27 @@ void RefreshRequiredEnts()
 		}
 	}
 	
-	g_PDLogicEnt = FindEntityByClassname(-1, "tf_logic_player_destruction");
-	g_GamerulesEnt = FindEntityByClassname(-1, "tf_gamerules");
-	
-	if (g_PDLogicEnt == -1) {
-		g_PDLogicEnt = CreateEntityByName("tf_logic_player_destruction");
-		SetEntProp(g_PDLogicEnt, Prop_Data, "m_nMinPoints", 10);
-		SetEntPropFloat(g_PDLogicEnt, Prop_Data, "m_flFinaleLength", 0.0); // No dumb PD round finale timer
-		DispatchSpawn(g_PDLogicEnt);
+	if (!IsDeathmatchDisabled()) {	// Setup player destruction if deathmatch map config enabled
+		g_PDLogicEnt = FindEntityByClassname(-1, "tf_logic_player_destruction");
+		if (g_PDLogicEnt == -1) {
+			g_PDLogicEnt = CreateEntityByName("tf_logic_player_destruction");
+			SetEntProp(g_PDLogicEnt, Prop_Data, "m_nMinPoints", 10);
+			SetEntPropFloat(g_PDLogicEnt, Prop_Data, "m_flFinaleLength", 0.0); // No dumb PD round finale timer
+			DispatchSpawn(g_PDLogicEnt);
+		}
+		
+		GameRules_SetProp("m_nHudType", (is_map_payload) ? 2 : 3);
+		GameRules_SetProp("m_bPlayingRobotDestructionMode", true);
+	} else {
+		GameRules_SetProp("m_nHudType", 0);	//0 as default hud setting
+		GameRules_SetProp("m_bPlayingRobotDestructionMode", false);
 	}
 	
+	g_GamerulesEnt = FindEntityByClassname(-1, "tf_gamerules");
 	if (g_GamerulesEnt == -1) {
 		g_GamerulesEnt = CreateEntityByName("tf_gamerules");
 		DispatchSpawn(g_GamerulesEnt);
 	}
-	
-	GameRules_SetProp("m_nHudType", (is_map_payload) ? 2 : 3);
-	GameRules_SetProp("m_bPlayingRobotDestructionMode", true);
 	
 	SetupSpawnPoints();
 }
@@ -105,6 +109,9 @@ int MapRoundSetupTime()
 
 void SetMaxScore(int score)
 {
+	if (IsDeathmatchDisabled())
+		return;
+	
 	SetEntProp(g_PDLogicEnt, Prop_Data, "m_nMaxPoints", score);
 	
 	SetScore(TFTeam_Red, 0);
@@ -115,6 +122,9 @@ void SetMaxScore(int score)
 
 void AddScore(TFTeam team, int points)
 {
+	if (IsDeathmatchDisabled())
+		return;
+	
 	char input[32];
 	
 	input = (team == TFTeam_Red) ? "ScoreRedPoints" : "ScoreBluePoints";
@@ -134,6 +144,9 @@ void AddScore(TFTeam team, int points)
 
 void SetScore(TFTeam team, int points)
 {
+	if (IsDeathmatchDisabled())
+		return;
+	
 	char input[32];
 	
 	input = (team == TFTeam_Red) ? "m_nRedTargetPoints" : "m_nBlueTargetPoints";

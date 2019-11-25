@@ -11,12 +11,14 @@ enum struct MapConfig
 	KeyValues kv;
 	ArrayList SpawnPoints;
 	bool IsMusicDisabled;
+	bool IsDeathmatchDisabled;
 }
 
 enum
 {
 	EditMode_Exit = 1,
 	EditMode_ToggleMusic,
+	EditMode_ToggleDeathmatch,
 	EditMode_CreateRed,
 	EditMode_CreateBlue,
 	EditMode_Delete,
@@ -41,6 +43,7 @@ void LoadMapConfig(const char[] mapname)
 	delete g_MapConfig.kv;
 	delete g_MapConfig.SpawnPoints;
 	g_MapConfig.IsMusicDisabled = false;
+	g_MapConfig.IsDeathmatchDisabled = false;
 	
 	char path[PLATFORM_MAX_PATH];
 	BuildPath(Path_SM, path, sizeof(path), "/configs/instagib_maps/%s.cfg", mapname);
@@ -69,6 +72,7 @@ void ReloadMapConfigKeyValues()
 	
 	g_MapConfig.kv.Rewind();
 	g_MapConfig.IsMusicDisabled = view_as<bool>(g_MapConfig.kv.GetNum("Disable Music"));
+	g_MapConfig.IsDeathmatchDisabled = view_as<bool>(g_MapConfig.kv.GetNum("Disable Deathmatch"));
 	if (g_MapConfig.kv.JumpToKey("Spawn Points", false)) {
 		if (g_MapConfig.kv.GotoFirstSubKey(false)) {
 			do {
@@ -117,6 +121,7 @@ void CreateSpawnPoint(TFTeam team, float pos[3], float rotation)
 		g_MapConfig.SpawnPoints = new ArrayList(sizeof(SpawnPoint));
 		g_MapConfig.kv = new KeyValues("Instagib Map Config");
 		g_MapConfig.kv.SetNum("Disable Music", 0);
+		g_MapConfig.kv.SetNum("Disable Deathmatch", 0);
 		CreateMapConfigFolder();
 	}
 	
@@ -231,6 +236,11 @@ public void Frame_RespawnAll(any data)
 	}
 }
 
+bool IsDeathmatchDisabled()
+{
+	return g_MapConfig.IsDeathmatchDisabled;
+}
+
 // -------------------------------------------------------------------
 void ToggleEditMode(int client)
 {
@@ -321,6 +331,7 @@ void Panel_EditMode(int client)
 	
 	panel.DrawText(" ");
 	panel.DrawItem(g_MapConfig.IsMusicDisabled ? "Disable Music: Yes" : "Disable Music: No");
+	panel.DrawItem(g_MapConfig.IsDeathmatchDisabled ? "Disable Deathmatch: Yes" : "Disable Deathmatch: No");
 	
 	panel.DrawText(" ");
 	char text[255];
@@ -351,6 +362,13 @@ public int Panel_EditMode_Handler(Menu menu, MenuAction action, int client, int 
 				g_MapConfig.kv.Rewind();
 				g_MapConfig.kv.SetNum("Disable Music", view_as<int>(g_MapConfig.IsMusicDisabled));
 				InstagibPrintToChat(true, client, "%s music.", g_MapConfig.IsMusicDisabled ? "Disabled" : "Enabled");
+			}
+			
+			case EditMode_ToggleDeathmatch: {
+				g_MapConfig.IsDeathmatchDisabled = !g_MapConfig.IsDeathmatchDisabled;
+				g_MapConfig.kv.Rewind();
+				g_MapConfig.kv.SetNum("Disable Deathmatch", view_as<int>(g_MapConfig.IsDeathmatchDisabled));
+				InstagibPrintToChat(true, client, "%s deathmatch.", g_MapConfig.IsDeathmatchDisabled ? "Disabled" : "Enabled");
 			}
 			
 			case EditMode_CreateRed: {
